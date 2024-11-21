@@ -1,0 +1,15 @@
+Array size: -1
+-----------------------
+		RandArray	ArrayASC	ArrayDESC
+Selection	0.000000	0.001000	0.000000
+Insertion	0.001000	0.000000	0.000000
+Shell		0.000000	0.000000	0.001000
+Quick		0.000000	0.001000	0.000000
+
+Array size: -1
+-----------------------
+		RandArray	ArrayASC	ArrayDESC
+Selection	0.000000	0.000000	0.001000
+Insertion	0.000000	0.000000	0.000000
+Shell		0.000000	0.001000	0.000000
+Quick		0.001000	0.000000	0.001000
