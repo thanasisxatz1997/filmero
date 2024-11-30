@@ -151,7 +151,7 @@ export default function App() {
             <div className="scene">
               <div className="card">
                 <div className="card__face card__face--front">
-                  <img src={item.poster} />
+                  <img src={item.poster} alt="" />
                 </div>
                 {/* <iframe
                   className="video"
