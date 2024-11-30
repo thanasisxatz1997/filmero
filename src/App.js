@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 import "./index.css";
 import StarRating from "./StarRating";
 import logoImage from "./assets/images/cd4e9ae0-2336-4b63-abd0-f3189e4bb25c.png";
+import {
+  deleteWatched,
+  fetchWatchedMovies,
+  insertToWatched,
+} from "./services/watchedMoviesService";
+import {
+  deleteBest,
+  fetchBestMovies,
+  insertToBest,
+} from "./services/bestMoviesService";
 
 // const tempMovieData = [
 //   {
@@ -59,9 +69,11 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
+  const [best, setBest] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+  const [currentPage, setCurrentPage] = useState("watchList");
 
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (selectedId === id ? null : id));
@@ -77,7 +89,33 @@ export default function App() {
 
   function handleDeleteWatched(id) {
     setWatched((watched) => watched.filter((movie) => movie.imdbId !== id));
+    deleteWatched(id);
   }
+
+  function handleDeleteBest(id) {
+    setBest((best) => best.filter((movie) => movie.imdbId !== id));
+    deleteBest(id);
+  }
+
+  function handleAddBest(movie) {
+    setBest([...best, movie]);
+    insertToBest(movie);
+  }
+
+  useEffect(function () {
+    async function initialFetch() {
+      const resWatched = await fetchWatchedMovies();
+      console.log("watched", resWatched);
+      const dataWatched = resWatched.map((item) => item.content);
+      setWatched(dataWatched);
+
+      const resBest = await fetchBestMovies();
+      console.log("best", resBest);
+      const dataBest = resBest.map((item) => item.content);
+      setBest(dataBest);
+    }
+    initialFetch();
+  }, []);
 
   useEffect(
     function () {
@@ -87,7 +125,7 @@ export default function App() {
           setError("");
           setIsLoading(true);
           const res = await fetch(
-            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
+            `https://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
             { signal: controller.signal }
           );
           if (!res) {
@@ -121,40 +159,113 @@ export default function App() {
     [query]
   );
 
+  function onContentChange() {
+    if (currentPage === "recomended") {
+      setCurrentPage("watchList");
+    } else {
+      setCurrentPage("recomended");
+    }
+  }
+
+  function RecomendedButton() {
+    return (
+      <button className={`recomended-button`} onClick={() => onContentChange()}>
+        {currentPage === "recomended" ? `WatchList` : "Top Movies"}
+      </button>
+    );
+  }
+
+  function Logo() {
+    return (
+      <div className="logo">
+        <img
+          src={logoImage}
+          alt="cant be found"
+          style={{ width: "70px" }}
+        ></img>
+        {/* <span role="img">🍿</span> */}
+        <h1>Filmero</h1>
+      </div>
+    );
+  }
+
+  function RecomendedMoviesContainer(best) {
+    console.log("best", best);
+    return (
+      <div className="flip-cards-container">
+        <div className="row">
+          {best.best.map((item) => (
+            <div className="scene">
+              <div className="card">
+                <div className="card__face card__face--front">
+                  <img src={item.poster} />
+                </div>
+                {/* <iframe
+                  className="video"
+                  title="Youtube player"
+                  sandbox="allow-same-origin allow-forms allow-popups allow-scripts allow-presentation"
+                  src={`https://youtube.com/embed/0fUCuvNlOCg?autoplay=0`}
+                  style={{ width: "240px" }}
+                ></iframe> */}
+                <div className="card__face card__face--back">
+                  <button
+                    className="remove-best-movie-button"
+                    onClick={() => handleDeleteBest(item.imdbId)}
+                  >
+                    👎
+                  </button>
+                  <p>{item.plot}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <NavBar>
         <Logo />
         <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
+        <RecomendedButton></RecomendedButton>
       </NavBar>
-      <Main>
-        <Box className="custom-scrollbar-container">
-          {isLoading && <Loader />}
-          {!isLoading && !error && (
-            <MovieList movies={movies} onSelectMovie={handleSelectMovie} />
-          )}
-          {error && <ErrorMessage message={error} />}
-        </Box>
-        <Box>
-          {selectedId ? (
-            <MovieDetails
-              selectedId={selectedId}
-              onCloseMovie={handleCloseMovie}
-              onAddWatched={handleAddWatched}
-              watched={watched}
-            />
-          ) : (
-            <>
-              <WatchedSummary watched={watched} />
-              <WatchedMoviesList
+      {currentPage === "watchList" ? (
+        <Main>
+          <Box className="custom-scrollbar-container">
+            {isLoading && <Loader />}
+            {!isLoading && !error && (
+              <MovieList movies={movies} onSelectMovie={handleSelectMovie} />
+            )}
+            {error && <ErrorMessage message={error} />}
+          </Box>
+          <Box>
+            {selectedId ? (
+              <MovieDetails
+                selectedId={selectedId}
+                onCloseMovie={handleCloseMovie}
+                onAddWatched={handleAddWatched}
                 watched={watched}
-                onDeleteWatched={handleDeleteWatched}
               />
-            </>
-          )}
-        </Box>
-      </Main>
+            ) : (
+              <>
+                <WatchedSummary watched={watched} />
+                <WatchedMoviesList
+                  watched={watched}
+                  onDeleteWatched={handleDeleteWatched}
+                  onAddBest={handleAddBest}
+                />
+              </>
+            )}
+          </Box>
+        </Main>
+      ) : (
+        <Main>
+          <RecomendedMoviesContainer best={best}></RecomendedMoviesContainer>
+        </Main>
+      )}
     </>
   );
 }
@@ -176,15 +287,19 @@ function NavBar({ children }) {
   return <nav className="nav-bar">{children}</nav>;
 }
 
-function Logo() {
-  return (
-    <div className="logo">
-      <img src={logoImage} alt="cant be found" style={{ width: "70px" }}></img>
-      {/* <span role="img">🍿</span> */}
-      <h1>usePopcorn</h1>
-    </div>
-  );
-}
+// function Logo(currentPage) {
+//   return (
+//     <div className="logo">
+//       <img src={logoImage} alt="cant be found" style={{ width: "70px" }}></img>
+//       {/* <span role="img">🍿</span> */}
+//       <h1
+//         className={`${currentPage === "watchList" && "underlined"} underlined`}
+//       >
+//         MyWatchList
+//       </h1>
+//     </div>
+//   );
+// }
 
 function NumResults({ movies }) {
   return (
@@ -222,29 +337,7 @@ function Box({ children }) {
     </div>
   );
 }
-/*
-function WatchedBox() {
-  const [watched, setWatched] = useState(tempWatchedData);
-  const [isOpen2, setIsOpen2] = useState(true);
 
-  return (
-    <div className="box">
-      <button
-        className="btn-toggle"
-        onClick={() => setIsOpen2((open) => !open)}
-      >
-        {isOpen2 ? "–" : "+"}
-      </button>
-      {isOpen2 && (
-        <>
-          <WatchedSummary watched={watched} />
-          <WatchedMoviesList watched={watched} />
-        </>
-      )}
-    </div>
-  );
-}
-*/
 function MovieList({ movies, onSelectMovie }) {
   console.log(movies);
   return (
@@ -296,6 +389,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   function handleAdd() {
     const newWatchedMovie = {
       imdbId: selectedId,
+      plot: plot,
       title: title,
       year: year,
       poster: poster,
@@ -305,6 +399,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     };
     onAddWatched(newWatchedMovie);
     onCloseMovie();
+    insertToWatched(newWatchedMovie);
   }
 
   useEffect(
@@ -328,7 +423,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       async function fetchMovieDetails() {
         setIsLoading(true);
         const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
+          `https://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
         );
         const data = await res.json();
         setMovie(data);
@@ -439,7 +534,7 @@ function WatchedSummary({ watched }) {
   );
 }
 
-function WatchedMoviesList({ watched, onDeleteWatched }) {
+function WatchedMoviesList({ watched, onDeleteWatched, onAddBest }) {
   return (
     <ul className="list">
       {watched.map((movie) => (
@@ -447,13 +542,14 @@ function WatchedMoviesList({ watched, onDeleteWatched }) {
           movie={movie}
           key={movie.imdbId}
           onDeleteWatched={onDeleteWatched}
+          onAddBest={onAddBest}
         />
       ))}
     </ul>
   );
 }
 
-function WatchedMovie({ movie, onDeleteWatched }) {
+function WatchedMovie({ movie, onDeleteWatched, onAddBest }) {
   return (
     <li key={movie.imdbId}>
       <img src={movie.poster} alt={`${movie.title} poster`} />
@@ -471,6 +567,12 @@ function WatchedMovie({ movie, onDeleteWatched }) {
           <span>⏳</span>
           <span>{movie.runtime} min</span>
         </p>
+        <button
+          className="add-recomended-button"
+          onClick={() => onAddBest(movie)}
+        >
+          <span>+ Add to recomended!</span>
+        </button>
         <button
           className="btn-delete"
           onClick={() => onDeleteWatched(movie.imdbId)}
