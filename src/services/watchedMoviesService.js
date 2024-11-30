@@ -1,16 +1,17 @@
 import supabase from "./supabase";
 
 export async function fetchWatchedMovies() {
-  let { data: watched, error } = await supabase.from("watched").select("*");
+  let { data: watched } = await supabase.from("watched").select("*");
   return watched;
 }
 
 export async function insertToWatched(movie) {
   console.log("trying to insert", movie);
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("watched")
     .insert([{ content: movie, imdbId: movie.imdbId }])
     .select();
+  console.log(data);
 }
 
 export async function deleteWatched(imdbId) {
@@ -18,4 +19,5 @@ export async function deleteWatched(imdbId) {
     .from("watched")
     .delete()
     .eq("imdbId", imdbId);
+  console.log(error);
 }
